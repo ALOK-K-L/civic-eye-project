@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIVIC EYE - City Corporation Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #overviewMap { height: 350px; width: 100%; border-radius: 8px; margin-top: 15px; }
+        .issue-highlight { background-color: #fffbe6 !important; border: 2px solid #ffc107 !important; }
+        .popup-issue-link { cursor: pointer; color: #0d6efd; text-decoration: underline; font-weight: bold; }
+        .priority-container { display: flex; flex-direction: column; gap: 20px; }
+        .priority-map-container, .priority-list-container { min-width: 100%; }
+        .priority-list-container button { width: 100%; margin-bottom: 8px; background-color: #dc3545; text-align: left; padding: 10px; }
+        header { font-size: 2rem; font-weight: bold; color: #0d5c05; }
+        .profile-btn { color: white; }
+        @media (min-width: 1024px) { .dashboard-section { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; max-width: 1400px; } }
+    </style>
+</head>
+<body>
+    <header>CIVIC EYE - City Corporation Dashboard</header>
+    <div class="profile-container">
+        <button class="profile-btn" onclick="toggleDropdown()">My Profile ▾</button>
+        <div class="profile-dropdown" id="profileDropdown"><a href="#" onclick="logoutUser()">Logout</a></div>
+    </div>
+    <div class="dashboard-section">
+        <div class="main-content-column">
+            <div class="summary-cards">
+                <div class="card"><h3>Total City Corp Issues</h3><p id="total-issues">0</p></div>
+                <div class="card"><h3>Pending</h3><p id="pending-issues">0</p></div>
+                <div class="card"><h3>Completed</h3><p id="completed-issues">0</p></div>
+            </div>
+            <h2>All Reported Issues</h2>
+            <div class="filters">
+                <input type="text" id="searchInput" placeholder="Search by description...">
+                <select id="statusFilter">
+                    <option value="all">All Statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+                <select id="tagFilter">
+                    <option value="all">All Tags</option>
+                    <option value="streetlight">Streetlight</option>
+                </select>
+            </div>
+            <table class="issue-table">
+                <thead><tr><th>Photo</th><th>Description & Map</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="issuesTableBody"></tbody>
+            </table>
+        </div>
+        <div class="sidebar-column">
+            <div class="priority-container">
+                <div class="priority-map-container">
+                    <h2>Active Issues Overview Map</h2>
+                    <p>This map shows a pin for every active issue. Click a pin to jump to the request.</p>
+                    <div id="overviewMap"></div>
+                </div>
+                <div class="priority-list-container">
+                    <h2>Priority Area List</h2>
+                    <button id="refreshBtn" style="background-color: #0d6efd;">Refresh Data & Map</button>
+                    <div id="priorityList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer>
+    
+    </footer>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script> function toggleDropdown() { document.getElementById("profileDropdown").style.display = document.getElementById("profileDropdown").style.display === "block" ? "none" : "block"; } </script>
+    <script type="module">
+        import { db, auth } from "./firebase-config.js";
+        import { collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { updateIssueStatus, deleteIssue, logout, getDistance } from "./script.js";
+        window.logoutUser = logout;
+        const issuesTableBody = document.getElementById("issuesTableBody");
+        const searchInput = document.getElementById("searchInput");
+        const statusFilter = document.getElementById("statusFilter");
+        const tagFilter = document.getElementById("tagFilter");
+        let allIssues = [];
+        function setupRealTimeListener() {
+            const issuesCollection = collection(db, "issues");
+            const q = query(issuesCollection, where("tags", "array-contains", "streetlight"));
+            onSnapshot(q, (snapshot) => {
+                allIssues = [];
+                snapshot.forEach(doc => { allIssues.push({ id: doc.id, ...doc.data() }); });
+                applyFilters();
+                updateSummaryCards(allIssues);
+                renderOverviewMapAndPriorityList(allIssues);
+            });
+        }
+        function renderIssues(issues) {
+            issuesTableBody.innerHTML = "";
+            if (issues.length === 0) { issuesTableBody.innerHTML = '<tr><td colspan="4">No issues match filters.</td></tr>'; return; }
+            issues.forEach(issue => {
+                const row = issuesTableBody.insertRow();
+                row.id = `issue-row-${issue.id}`;
+                const tagsHtml = (issue.tags || []).map(tag => `<span class="tag">${tag}</span>`).join(' ');
+                const location = issue.location;
+                row.innerHTML = `
+                    <td><a href="${issue.photoURL}" target="_blank"><img src="${issue.photoURL}" width="100" alt="Issue Photo" /></a></td>
+                    <td>${issue.description}<br><div style="margin-top:5px;"><strong>Tags:</strong> ${tagsHtml}</div><button class="map-button" onclick="window.showMap(${location.latitude}, ${location.longitude})">View on Map</button></td>
+                    <td><strong class="status-${issue.status.toLowerCase().replace(' ', '-')}">${issue.status}</strong></td>
+                    <td class="action-buttons">
+                        <select id="status-select-${issue.id}"><option value="Pending">Pending</option><option value="In Progress">In Progress</option><option value="Completed">Completed</option><option value="Rejected">Rejected</option></select>
+                        <button class="update-btn" onclick="window.handleUpdate('${issue.id}', '${issue.userID}')">Update</button>
+                        <button class="delete-btn" onclick="window.handleDelete('${issue.id}')">Delete</button>
+                    </td>
+                `;
+                 document.getElementById(`status-select-${issue.id}`).value = issue.status;
+            });
+        }
+        window.overviewMapInstance = null;
+        function renderOverviewMapAndPriorityList(issues) {
+            const mapContainer = document.getElementById("overviewMap"), listContainer = document.getElementById("priorityList");
+            if (window.overviewMapInstance) { window.overviewMapInstance.remove(); }
+            const map = L.map(mapContainer).setView([8.5241, 76.9366], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            window.overviewMapInstance = map;
+            const cityCorpIcon = new L.Icon({ iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
+            const activeIssues = issues.filter(issue => issue.status === 'Pending' || issue.status === 'In Progress');
+            activeIssues.forEach(issue => {
+                const marker = L.marker([issue.location.latitude, issue.location.longitude], { icon: cityCorpIcon }).addTo(map);
+                marker.bindPopup(`<b>${issue.description}</b><br><a href="#" class="popup-issue-link" onclick="window.scrollToIssue('${issue.id}')">Go to this request</a>`);
+            });
+            let clusters = []; const clusterRadius = 15;
+            activeIssues.forEach(issue => {
+                let foundCluster = false;
+                for (const cluster of clusters) { if (getDistance(issue.location.latitude, issue.location.longitude, cluster.lat, cluster.lng) <= clusterRadius) { cluster.issues.push(issue); foundCluster = true; break; } }
+                if (!foundCluster) { clusters.push({ lat: issue.location.latitude, lng: issue.location.longitude, issues: [issue] }); }
+            });
+            listContainer.innerHTML = "";
+            clusters.sort((a, b) => b.issues.length - a.issues.length);
+            const hotspots = clusters.filter(cluster => cluster.issues.length > 1);
+            if (hotspots.length === 0) { listContainer.innerHTML = "<p>No active issue hotspots found.</p>"; } 
+            else {
+                hotspots.forEach((cluster, index) => {
+                    const button = document.createElement("button");
+                    button.innerHTML = `Priority #${index + 1} (${cluster.issues.length} issues) - Click to View`;
+                    button.onclick = () => { map.setView([cluster.lat, cluster.lng], 18); const firstIssue = cluster.issues[0]; map.eachLayer(layer => { if (layer instanceof L.Marker) { const latLng = layer.getLatLng(); if (latLng.lat === firstIssue.location.latitude && latLng.lng === firstIssue.location.longitude) { layer.openPopup(); } } }); };
+                    listContainer.appendChild(button);
+                });
+            }
+        }
+        function updateSummaryCards(issues) { document.getElementById('total-issues').textContent = issues.length; document.getElementById('pending-issues').textContent = issues.filter(i => i.status === 'Pending').length; document.getElementById('completed-issues').textContent = issues.filter(i => i.status === 'Completed').length; }
+        function applyFilters() {
+            let filteredIssues = [...allIssues];
+            const searchTerm = searchInput.value.toLowerCase(), statusValue = statusFilter.value, tagValue = tagFilter.value;
+            if (searchTerm) { filteredIssues = filteredIssues.filter(issue => issue.description.toLowerCase().includes(searchTerm)); }
+            if (statusValue !== 'all') { filteredIssues = filteredIssues.filter(issue => issue.status === statusValue); }
+            if (tagValue !== 'all') { filteredIssues = filteredIssues.filter(issue => (issue.tags || []).includes(tagValue)); }
+            renderIssues(filteredIssues);
+        }
+        searchInput.addEventListener('keyup', applyFilters); statusFilter.addEventListener('change', applyFilters); tagFilter.addEventListener('change', applyFilters);
+        document.getElementById("refreshBtn").addEventListener("click", () => { setupRealTimeListener(); alert("Data is now re-syncing from the server."); });
+        window.showMap = (lat, lng) => window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+        window.scrollToIssue = (issueId) => { const issueRow = document.getElementById(`issue-row-${issueId}`); if (issueRow) { issueRow.scrollIntoView({ behavior: 'smooth', block: 'center' }); issueRow.classList.add('issue-highlight'); setTimeout(() => { issueRow.classList.remove('issue-highlight'); }, 2500); } };
+        
+        // --- THIS IS THE UPDATED FUNCTION ---
+        window.handleUpdate = async (issueId, citizenUserID) => {
+            const newStatus = document.getElementById(`status-select-${issueId}`).value;
+            const currentUser = auth.currentUser;
+            if (!currentUser) { alert("You are not logged in."); return; }
+            try {
+                await updateIssueStatus(issueId, newStatus, currentUser.uid, citizenUserID);
+                alert(`Status updated successfully. Citizen will be notified.`);
+            } catch (error) {
+                console.error("Error updating status:", error);
+                alert("Failed to update status. Please try again.");
+            }
+        };
+        // --- END OF UPDATED FUNCTION ---
+
+        window.handleDelete = async (issueId) => { if (confirm("Are you sure you want to delete this issue?")) { try { await deleteIssue(issueId); alert("Issue deleted successfully."); } catch (error) { console.error("Error deleting issue:", error); alert("Failed to delete issue. Please try again."); } } };
+        setupRealTimeListener();
+    </script>
+</body>
+</html>

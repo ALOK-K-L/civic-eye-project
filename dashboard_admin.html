@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIVIC EYE - Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #priorityMap { height: 400px; width: 100%; border-radius: 8px; margin-top: 15px; }
+        .admin-nav { display: flex; flex-direction: column; gap: 10px; }
+        .admin-nav a { text-decoration: none; flex-grow: 1; }
+        .admin-nav button { width: 100%; }
+        .priority-list-container { max-height: 450px; overflow-y: auto; }
+        .priority-item { background: #f9f9f9; border-left: 5px solid #dc3545; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+
+        /* --- Previous Changes --- */
+        .profile-btn { color: white; }
+        .priority-item h4 { color: red; font-weight: bold; }
+        
+        /* --- Updated Header Title Style --- */
+        header {
+            font-size: 2.2rem; /* Made the font larger */
+            font-weight: bold;
+            color: #0d5c05;
+            /* Adds a 1px white "border" using multiple shadows */
+            text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+        }
+        
+        /* --- Responsive Layout for Desktop --- */
+        @media (min-width: 992px) {
+            .dashboard-section {
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 25px;
+                max-width: 1200px;
+            }
+            .main-column, .sidebar-column {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>CIVIC EYE - Admin Dashboard</header>
+
+    <div class="profile-container">
+        <button class="profile-btn" onclick="toggleDropdown()">My Profile ▾</button>
+        <div class="profile-dropdown" id="profileDropdown"><a href="#" onclick="logoutUser()">Logout</a></div>
+    </div>
+
+    <div class="dashboard-section">
+        
+        <div class="main-column">
+            <div class="summary-cards">
+                <div class="card"><h3>Total Issues</h3><p id="total-issues">0</p></div>
+                <div class="card"><h3>Pending</h3><p id="pending-issues">0</p></div>
+                <div class="card"><h3>Completed</h3><p id="completed-issues">0</p></div>
+            </div>
+            <div class="priority-map-container">
+                <h2>Issue Hotspots Map</h2>
+                <p>This map groups nearby active issues to show problem areas.</p>
+                <div id="priorityMap"></div>
+            </div>
+        </div>
+
+        <div class="sidebar-column">
+            <div class="admin-nav">
+                <a href="manage_staff.html"><button>Manage Staff</button></a>
+                <a href="create_user.html"><button>Create New User</button></a>
+            </div>
+            <div class="priority-list-container">
+                <h2>Priority Area List</h2>
+                <div id="priorityList"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+  
+    </footer>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        function toggleDropdown() { document.getElementById("profileDropdown").style.display = document.getElementById("profileDropdown").style.display === "block" ? "none" : "block"; }
+    </script>
+    <script type="module">
+        import { fetchAllIssues, logout, getDistance } from "./script.js";
+        window.logoutUser = logout;
+        
+        async function initializeDashboard() {
+            const allIssues = await fetchAllIssues();
+            updateSummaryCards(allIssues);
+            renderPriorityView(allIssues);
+        }
+
+        function renderPriorityView(issues) {
+            const mapContainer = document.getElementById("priorityMap");
+            const listContainer = document.getElementById("priorityList");
+            if (window.priorityMapInstance) { window.priorityMapInstance.remove(); }
+            const map = L.map(mapContainer).setView([8.5241, 76.9366], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            let clusters = []; const clusterRadius = 15;
+            const activeIssues = issues.filter(issue => issue.status === 'Pending' || issue.status === 'In Progress');
+            activeIssues.forEach(issue => {
+                let foundCluster = false;
+                for (const cluster of clusters) {
+                    if (getDistance(issue.location.latitude, issue.location.longitude, cluster.lat, cluster.lng) <= clusterRadius) {
+                        cluster.issues.push(issue); foundCluster = true; break;
+                    }
+                }
+                if (!foundCluster) { clusters.push({ lat: issue.location.latitude, lng: issue.location.longitude, issues: [issue] }); }
+            });
+            clusters.sort((a, b) => b.issues.length - a.issues.length);
+            listContainer.innerHTML = clusters.length > 0 ? "" : "<p>No active hotspots found.</p>";
+            clusters.forEach((cluster, index) => {
+                const marker = L.marker([cluster.lat, cluster.lng]).addTo(map);
+                marker.bindPopup(`<b>${cluster.issues.length} Active Issues Here</b>`);
+                if (cluster.issues.length > 1) {
+                    const listItem = document.createElement("div");
+                    listItem.className = "priority-item";
+                    const tagsInCluster = [...new Set(cluster.issues.flatMap(i => i.tags || []))].join(', ');
+                    listItem.innerHTML = `<h4>Priority Area #${index + 1} (${cluster.issues.length} issues)</h4><p><strong>Problem Types:</strong> ${tagsInCluster}</p><button class="map-button" style="padding: 5px 10px; font-size: 0.8rem;" onclick="window.focusOnMap([${cluster.lat}, ${cluster.lng}])">Focus on Map</button>`;
+                    listContainer.appendChild(listItem);
+                }
+            });
+            window.focusOnMap = (coords) => map.setView(coords, 18);
+        }
+
+        function updateSummaryCards(issues) {
+            document.getElementById('total-issues').textContent = issues.length;
+            document.getElementById('pending-issues').textContent = issues.filter(i => i.status === 'Pending').length;
+            document.getElementById('completed-issues').textContent = issues.filter(i => i.status === 'Completed').length;
+        }
+
+        initializeDashboard();
+    </script>
+</body>
+</html>

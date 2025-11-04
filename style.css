@@ -1,0 +1,326 @@
+/* --- Universal Styles --- */
+html {
+  height: 100%;
+}
+body {
+  min-height: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  background: linear-gradient(135deg, #FF9933, #FFFFFF, #138808);
+  color: #333;
+  position: relative;
+  overflow-y: auto; /* Allows scrolling */
+  font-family: 'Poppins', sans-serif;
+  box-sizing: border-box;
+}
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+@keyframes spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes scroll-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+/* --- Background Animation --- */
+#background-chakra {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80vw;
+  height: 80vw;
+  opacity: 0.05;
+  z-index: -1;
+  animation: spin 60s linear infinite;
+}
+
+/* --- Header --- */
+header {
+    text-align: center;
+    margin-bottom: 25px;
+    width: 100%;
+    padding-top: 20px;
+}
+.header-logo {
+  width: 100px;
+  height: auto;
+  margin-bottom: 15px;
+}
+header h1 {
+    font-size: 3rem;
+    font-weight: 900;
+    margin-top: 0;
+    margin-bottom: 10px;
+    background: linear-gradient(90deg, #FF9933, #FFFFFF, #138808, #FFFFFF, #FF9933);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: 1px #0d5c05;
+    animation: scroll-gradient 5s linear infinite;
+}
+header p {
+    margin-top: 5px;
+    font-size: 1rem;
+    color: #0d5c05;
+}
+.quote {
+    font-size: 0.85rem;
+    font-style: italic;
+    padding-top: 10px;
+    min-height: 50px; /* Ensures layout doesn't jump if quote is loaded dynamically */
+}
+
+
+/* --- Main Content Container --- */
+.dashboard-section {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+    padding: 20px;
+    width: 90%;
+    max-width: 800px; /* Default max-width for dashboards */
+    margin: 10px auto;
+}
+.dashboard-section a {
+    color: #138808;
+    font-weight: 600;
+    text-decoration: none;
+}
+.dashboard-section a:hover {
+    text-decoration: underline;
+}
+
+/* --- Form Elements --- */
+.input-group { 
+    margin-bottom: 15px; 
+}
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+  color: #333;
+}
+input, select, textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  transition: all 0.2s ease-in-out;
+}
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #138808;
+    box-shadow: 0 0 0 3px rgba(19, 136, 8, 0.2);
+}
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(45deg, #138808, #18a50a);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+  margin-top: 10px;
+  display: flex; /* Added for icon alignment */
+  align-items: center; /* Added for icon alignment */
+  justify-content: center; /* Added for icon alignment */
+  gap: 8px; /* Added for spacing between icon and text */
+}
+button:hover { 
+    transform: scale(1.02);
+}
+
+/* --- Profile Dropdown --- */
+.profile-container {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    z-index: 100;
+}
+.profile-btn {
+    background-color: #fff;
+    color: #138808;
+    border: 1px solid #138808;
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    width: auto;
+}
+.profile-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+.profile-dropdown a {
+    color: black;
+    padding: 12px 20px;
+    text-decoration: none;
+    display: block;
+    font-size: 0.9rem;
+}
+.profile-dropdown a:hover {
+    background-color: #f1f1f1;
+}
+
+/* --- Summary Cards (For Dashboards) --- */
+.summary-cards {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+.card {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    flex-grow: 1;
+    border-left: 5px solid #138808;
+}
+.card h3 {
+    margin: 0 0 5px 0;
+    font-size: 1rem;
+    color: #555;
+}
+.card p {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #333;
+}
+
+/* --- Table Styles --- */
+.issue-table, .staff-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    overflow-x: auto; /* For responsiveness */
+    display: block;
+}
+.issue-table th, .issue-table td,
+.staff-table th, .staff-table td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+    vertical-align: middle;
+}
+.issue-table th, .staff-table th {
+    background-color: #f2f2f2;
+}
+
+/* --- Status & Tags --- */
+.status-pending { color: #ffc107; font-weight: bold; }
+.status-in-progress { color: #0d6efd; font-weight: bold; }
+.status-completed { color: #198754; font-weight: bold; }
+.status-rejected { color: #dc3545; font-weight: bold; }
+.tag {
+    display: inline-block;
+    background-color: #e2e2e2;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    margin: 2px;
+}
+
+/* --- Action Buttons inside tables --- */
+.action-buttons button, .action-buttons select {
+    width: auto;
+    padding: 6px 10px;
+    margin: 2px;
+    font-size: 0.8rem;
+}
+.update-btn { background: #0d6efd; }
+.delete-btn { background: #dc3545; }
+.map-button { background: #6c757d; }
+
+
+/* --- Citizen Tracking Page Specifics --- */
+.issue-tracker {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 5px solid #138808;
+}
+.progress-bar-container {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    height: 10px;
+    margin: 10px 0;
+}
+.progress-bar {
+    height: 100%;
+    background-color: #198754;
+    border-radius: 4px;
+    transition: width 0.5s ease-in-out;
+}
+
+
+/* --- Footer --- */
+footer {
+  width: 100%;
+  text-align: center;
+  padding: 20px 0;
+  margin-top: auto;
+  color: rgba(0, 0, 0, 0.7);
+  font-size: 0.8rem;
+}
+
+/* --- Media Queries for Larger Screens --- */
+@media (min-width: 601px) {
+  body {
+    padding-top: 5vh;
+  }
+  header h1 {
+    font-size: 4rem; /* Increased font size for desktop */
+  }
+  .dashboard-section {
+    padding: 30px;
+  }
+  #background-chakra {
+      width: 50vw;
+      height: 50vw;
+  }
+}
+
+/* --- FAQ Mascot Styles --- */
+#faq-mascot {
+    position: fixed; /* Makes the mascot float on the screen */
+    bottom: 20px;
+    right: 20px;
+    width: 80px; /* Adjust size as needed */
+    height: auto;
+    cursor: pointer;
+    z-index: 1000; /* Ensures it stays on top of other content */
+    transition: transform 0.2s ease-in-out;
+}
+
+#faq-mascot:hover {
+    transform: scale(1.1); /* Makes the mascot slightly bigger on hover */
+}

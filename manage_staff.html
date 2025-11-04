@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Staff - CIVIC EYE</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .staff-list-item { background: #f9f9f9; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 5px solid #0d6efd; }
+        .staff-stats { display: flex; gap: 20px; margin-top: 10px; }
+        .stat p { font-size: 1.5rem; font-weight: bold; margin: 0; }
+        .stat span { font-size: 0.9rem; color: #555; }
+
+        /* --- Requested Style Changes --- */
+        header {
+            font-size: 2rem;      /* Makes the font larger */
+            font-weight: bold;    /* Makes the font bold */
+            color: #0d5c05;       /* Sets the font color to green */
+        }
+    </style>
+</head>
+<body>
+    <header>MANAGE STAFF</header>
+
+    <div class="dashboard-section">
+        <a href="dashboard_admin.html"><button style="background-color: #6c757d;">Back to Admin Dashboard</button></a>
+    </div>
+    <div class="dashboard-section">
+        <h2>Staff Performance</h2>
+        <div id="staffListContainer"><p>Loading staff data...</p></div>
+    </div>
+    <script type="module">
+        import { db } from "./firebase-config.js";
+        import { collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { fetchAuthorizedUsers } from "./script.js";
+        
+        // This function sets up a real-time listener for issues and renders the dashboard
+        async function setupRealTimeListeners() {
+            // First, fetch the authorized users (this is a one-time fetch)
+            const authorizedUsers = await fetchAuthorizedUsers();
+            
+            // Then, set up the real-time listener for issues
+            const issuesCollection = collection(db, "issues");
+            onSnapshot(issuesCollection, (snapshot) => {
+                const allIssues = [];
+                snapshot.forEach(doc => {
+                    allIssues.push({ id: doc.id, ...doc.data() });
+                });
+                renderStaffPerformance(authorizedUsers, allIssues);
+            });
+        }
+        
+        function renderStaffPerformance(users, issues) {
+            const staffListContainer = document.getElementById("staffListContainer");
+            staffListContainer.innerHTML = "";
+            if (users.length === 0) {
+                staffListContainer.innerHTML = "<p>No authorized users found.</p>";
+                return;
+            }
+            
+            users.forEach(user => {
+                const issuesHandled = issues.filter(issue => issue.lastUpdatedBy === user.uid);
+                const completed = issuesHandled.filter(i => i.status === 'Completed').length;
+                const inProgress = issuesHandled.filter(i => i.status === 'In Progress').length;
+                
+                const userElement = document.createElement("div");
+                userElement.className = "staff-list-item";
+                userElement.innerHTML = `
+                    <strong>${user.name}</strong> (${user.email})
+                    <div class="staff-stats">
+                        <div class="stat"><p>${completed}</p><span>Completed</span></div>
+                        <div class="stat"><p>${inProgress}</p><span>In Progress</span></div>
+                    </div>
+                `;
+                staffListContainer.appendChild(userElement);
+            });
+        }
+        
+        // Start the real-time listeners when the page loads
+        setupRealTimeListeners();
+    </script>
+</body>
+</html>

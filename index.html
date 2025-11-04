@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIVIC EYE – Login</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    #departmentSelectGroup { display: none; }
+
+    .subtitle {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    /* --- New Rule for Mobile Layout --- */
+    @media (max-width: 600px) {
+      #background-chakra {
+        top: 35%; /* Moves the chakra up on mobile screens */
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="background-chakra" viewBox="-10 -10 20 20" fill="#06038d">
+    <title>Ashoka Chakra</title>
+    <circle fill="none" stroke="#06038d" r="8.625" stroke-width="1.25"/>
+    <circle r="1.6"/>
+    <g id="d">
+      <g id="c">
+        <g id="b">
+          <g id="a">
+            <path d="m0-8 .3 4.81409L0-.80235-.3-3.18591z"/>
+            <circle transform="rotate(7.5)" r="0.35" cy="-8"/>
+          </g>
+          <use xlink:href="#a" transform="scale(-1)"/>
+        </g>
+        <use xlink:href="#b" transform="rotate(15)"/>
+      </g>
+      <use xlink:href="#c" transform="rotate(30)"/>
+    </g>
+    <use xlink:href="#d" transform="rotate(60)"/>
+    <use xlink:href="#d" transform="rotate(120)"/>
+  </svg>
+
+  <header>
+    <img src="logo.png" alt="CIVIC EYE Logo" class="header-logo">
+    <h1>CIVIC EYE</h1>
+    <p class="subtitle">Empowering Citizens for a Better Nation</p>
+    <div class="quote"></div>
+  </header>
+
+  <div class="dashboard-section" style="max-width: 360px; padding: 25px;">
+    <h2 style="font-size: 1.5rem; text-align:center;">Login</h2>
+    <div class="input-group">
+      <label for="loginRole" style="font-size: 0.9rem;">Select Your Role</label>
+      <select id="loginRole" style="padding: 10px;">
+        <option value="Citizen">Citizen</option>
+        <option value="Authorized User">Authorized User</option>
+        <option value="Admin">Admin</option>
+      </select>
+    </div>
+    <div class="input-group" id="departmentSelectGroup">
+        <label for="loginDepartment" style="font-size: 0.9rem;">Select Department</label>
+        <select id="loginDepartment" style="padding: 10px;">
+            <option value="General">General Authorized User</option>
+            <option value="PWD">PWD</option>
+            <option value="Waste and Sanitation">Waste and Sanitation</option>
+            <option value="City Corporation">City Corporation</option>
+        </select>
+    </div>
+    <div class="input-group">
+      <label for="loginEmail" style="font-size: 0.9rem;">Email</label>
+      <input type="email" id="loginEmail" placeholder="Enter your email" required style="padding: 10px;">
+    </div>
+    <div class="input-group">
+      <label for="loginPassword" style="font-size: 0.9rem;">Password</label>
+      <input type="password" id="loginPassword" placeholder="Enter your password" required style="padding: 10px;">
+    </div>
+    <button id="loginBtn">Login <span>&rarr;</span></button>
+    <p style="text-align:center; font-size: 0.9rem; margin-top: 15px;">New citizen? <a href="signup.html">Create an account</a></p>
+    <p style="text-align:center; font-size: 0.9rem; margin-top: 10px;"><a href="contact.html">Contact Us & Map</a></p>
+  </div>
+
+  <footer>
+  
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const quotes = [
+        '“Arise, awake, and stop not till the goal is reached.”<br><em>– Swami Vivekananda</em>',
+        '“The future depends on what you do today.”<br><em>– Mahatma Gandhi</em>',
+        '“Every citizen of India must remember that he is an Indian and he has every right in this country but with certain duties.”<br><em>– Sardar Vallabhbhai Patel</em>'
+      ];
+      
+      const quoteElement = document.querySelector('.quote');
+      const randomIndex = Math.floor(Math.random() * quotes.length);
+      quoteElement.innerHTML = quotes[randomIndex];
+    });
+  </script>
+
+  <script type="module">
+    import { auth, db } from "./firebase-config.js";
+    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+    document.getElementById("loginRole").addEventListener("change", (e) => {
+      const departmentSelectGroup = document.getElementById("departmentSelectGroup");
+      if (e.target.value === "Authorized User") {
+        departmentSelectGroup.style.display = "block";
+      } else {
+        departmentSelectGroup.style.display = "none";
+      }
+    });
+
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
+      const selectedRole = document.getElementById("loginRole").value;
+      const selectedDepartment = document.getElementById("loginDepartment").value;
+
+      if (!email || !password) { alert("Please enter both email and password."); return; }
+      
+      try {
+        // --- THIS IS THE LOGIN ATTEMPT ---
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        // --- THIS IS THE ROLE VERIFICATION ---
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+          const roleFromDB = userDoc.data().role;
+          const departmentFromDB = userDoc.data().department || 'General';
+          
+          if (roleFromDB === 'Citizen') {
+            // Priority Check 1: If the database role is Citizen, always send them here.
+            window.location.href = 'dashboard_citizen.html';
+          } 
+          // Check 2: Strict matching logic for Admin/Authorized Users
+          else if (roleFromDB === selectedRole && (roleFromDB !== 'Authorized User' || departmentFromDB === selectedDepartment)) {
+            if (roleFromDB === 'Admin') window.location.href = 'dashboard_admin.html';
+            else {
+                // Authorized User Redirection Logic
+                if (departmentFromDB === 'PWD') window.location.href = 'dashboard_pwd.html';
+                else if (departmentFromDB === 'Waste and Sanitation') window.location.href = 'dashboard_waste.html';
+                else if (departmentFromDB === 'City Corporation') window.location.href = 'dashboard_citycorp.html';
+                else window.location.href = 'dashboard_authorized.html';
+            }
+          } else {
+            // Failed: Role selected on the screen does not match database role.
+            alert(`Login failed: Permission denied. Your role is ${roleFromDB}. Please select the correct role from the dropdown and try again.`);
+            await auth.signOut();
+          }
+        } else {
+          // This case is rare, means user exists in Auth but not Firestore
+          alert("User data not found. Please contact support.");
+          await auth.signOut();
+        }
+      } catch (error) {
+        // --- THIS IS THE IMPROVED ERROR CATCH BLOCK ---
+        // This will show the exact error in the browser console (F12)
+        console.error("Login Error Code:", error.code);
+        
+        // This gives the user a more helpful alert
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            alert("Login failed: Incorrect password. Please try again.");
+        } else if (error.code === 'auth/user-not-found') {
+            alert("Login failed: No account found with this email address.");
+        } else if (error.code === 'auth/invalid-email') {
+            alert("Login failed: Please enter a valid email address.");
+        } else {
+            // Generic fallback
+            alert("Login failed: An unknown error occurred. " + error.message);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

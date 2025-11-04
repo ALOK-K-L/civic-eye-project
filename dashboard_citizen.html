@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIVIC EYE - Report an Issue</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css">
+  <style>
+    #map { height: 300px; margin-bottom: 10px; border-radius: 8px; }
+    .map-controls button { width: auto; flex-grow: 1; background-color: #0d6efd !important; }
+    header {
+      font-family: 'Poppins', sans-serif;
+      font-size: 2rem;
+      font-weight: bold;
+      color: #0d5c05;
+      padding-right: 120px; 
+      padding-left: 10px;
+    }
+    .profile-btn {
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <header>CIVIC EYE - Citizen Dashboard</header>
+  <div class="profile-container">
+    <button id="profileBtn" class="profile-btn">My Profile ▾</button>
+    <div class="profile-dropdown" id="profileDropdown"><a href="#" id="logoutBtn">Logout</a></div>
+  </div>
+
+  <div class="dashboard-section">
+    <a href="track.html"><button style="background-color: #0d6efd;">Track My Submitted Issues</button></a>
+  </div>
+
+  <div class="dashboard-section">
+    <h2>Report a New Issue</h2>
+    <label for="issuePhoto">Attach Photo:</label>
+    <input type="file" id="issuePhoto" accept="image/*">
+    <label for="issueDesc">Describe the Issue:</label>
+    <textarea id="issueDesc" placeholder="Write a short description"></textarea>
+    
+    <label for="issueTags">Select Issue Type:</label>
+    <select id="issueTags">
+      <option value="" disabled selected>Select a tag...</option>
+      <option value="pothole">Pothole</option>
+      <option value="streetlight">Streetlight</option>
+      <option value="waste">Waste</option>
+    </select>
+
+    <label>Pick Issue Location (Drag marker or use button):</label> 
+    <div id="map"></div>
+    <div class="map-controls">
+        <button id="currentLocationBtn">Use My Current Location</button>
+    </div>
+    <button id="submitBtn">Submit Issue</button>
+  </div>
+  
+  <a href="faq.html" title="Click for FAQ & Help">
+      <img src="mascot.png" alt="Help Mascot" id="faq-mascot">
+  </a>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script type="module">
+    import { auth } from "./firebase-config.js";
+    import { submitIssue, logout } from "./script.js";
+
+    // --- NEW FUNCTION TO CHECK NOTIFICATIONS ---
+    function checkAndDisplayNotifications() {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return; // Not logged in
+
+        const storageKey = `notifications_${currentUser.uid}`;
+        let notifications = JSON.parse(localStorage.getItem(storageKey)) || [];
+
+        const unreadNotifications = notifications.filter(n => !n.read);
+
+        if (unreadNotifications.length > 0) {
+            // Create a message
+            let notifMessages = unreadNotifications.map(n => `• ${n.message}`).join("\n");
+            alert(`You have ${unreadNotifications.length} new notification(s):\n\n${notifMessages}`);
+
+            // Mark them as read
+            const updatedNotifications = notifications.map(n => ({ ...n, read: true }));
+            localStorage.setItem(storageKey, JSON.stringify(updatedNotifications));
+        }
+    }
+    // --- END NEW FUNCTION ---
+
+    document.getElementById("profileBtn").addEventListener("click", () => {
+      document.getElementById("profileDropdown").style.display = document.getElementById("profileDropdown").style.display === "block" ? "none" : "block";
+    });
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+    document.getElementById("submitBtn").addEventListener("click", handleSubmission);
+    document.getElementById("currentLocationBtn").addEventListener("click", useCurrentLocation);
+
+    const marianCoords = [8.55776, 76.86004]; // Marian Engineering College Coordinates
+    let selectedLat = marianCoords[0], selectedLng = marianCoords[1];
+    const map = L.map('map').setView(marianCoords, 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const marker = L.marker(marianCoords, { draggable: true }).addTo(map);
+    
+    // --- CALL THE NEW FUNCTION ON PAGE LOAD ---
+    // We must wait for auth to be ready
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            checkAndDisplayNotifications();
+        } else {
+            // User is not logged in, redirect to login page
+            window.location.href = 'index.html';
+        }
+    });
+
+    marker.on('dragend', (e) => {
+        const pos = e.target.getLatLng(); selectedLat = pos.lat; selectedLng = pos.lng;
+    });
+
+    function useCurrentLocation() {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude, lng = position.coords.longitude;
+                map.setView([lat, lng], 18); marker.setLatLng([lat, lng]); selectedLat = lat; selectedLng = lng;
+            },
+            () => { alert("Could not get your location."); }
+        );
+    }
+    
+    async function handleSubmission() {
+        const photoInput = document.getElementById("issuePhoto"), desc = document.getElementById("issueDesc").value, tagsInput = document.getElementById("issueTags").value, photoFile = photoInput.files[0];
+        
+        const tags = tagsInput ? [tagsInput] : []; 
+        
+        if (!desc || !photoFile || tags.length === 0) { alert("Please provide a description, photo, and select an issue type."); return; }
+        const currentUser = auth.currentUser;
+        if (!currentUser) { alert("You must be logged in."); return; }
+        await submitIssue(photoFile, desc, tags, selectedLat, selectedLng, currentUser.uid);
+        photoInput.value = ""; document.getElementById("issueDesc").value = ""; document.getElementById("issueTags").value = "";
+    }
+  </script>
+</body>
+</html>

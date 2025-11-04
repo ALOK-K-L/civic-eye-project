@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track My Issues - CIVIC EYE</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        header {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #0d5c05;
+        }
+        .profile-btn { color: white; }
+    </style>
+</head>
+<body>
+    <header>Track My Submitted Issues</header>
+    <div class="profile-container">
+        <button id="profileBtn" class="profile-btn">My Profile ▾</button>
+        <div class="profile-dropdown" id="profileDropdown"><a href="#" id="logoutBtn">Logout</a></div>
+    </div>
+
+    <div class="dashboard-section">
+        <a href="dashboard_citizen.html"><button style="background-color: #6c757d;">← Back to Dashboard</button></a>
+    </div>
+
+    <div class="dashboard-section">
+        <h2>My Issue Status</h2>
+        <div id="issueTrackerContainer">
+            <p>Loading your submitted issues...</p>
+        </div>
+    </div>
+
+    <footer>
+      
+    </footer>
+
+    <!-- UPDATED SCRIPT MODULE -->
+    <script type="module">
+        // --- UPDATED IMPORTS ---
+        import { auth, db } from "./firebase-config.js";
+        import { logout } from "./script.js";
+        // We now import the real-time listener tools
+        import { collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        document.getElementById("profileBtn").addEventListener("click", () => {
+            document.getElementById("profileDropdown").style.display = document.getElementById("profileDropdown").style.display === "block" ? "none" : "block";
+        });
+        document.getElementById("logoutBtn").addEventListener("click", logout);
+
+        function renderIssues(issues) {
+            const container = document.getElementById("issueTrackerContainer");
+            container.innerHTML = "";
+
+            if (issues.length === 0) {
+                container.innerHTML = "<p>You have not submitted any issues yet.</p>";
+                return;
+            }
+
+            // Sort by newest first
+            issues.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+
+
+            issues.forEach(issue => {
+                const issueElement = document.createElement("div");
+                issueElement.className = "issue-tracker";
+
+                let statusText = issue.status;
+                let progressWidth = "0%";
+                
+                // This logic is now correct
+                if (statusText === "Pending") {
+                    progressWidth = "25%";
+                } else if (statusText === "In Progress") {
+                    progressWidth = "60%";
+                } else if (statusText === "Completed") {
+                    progressWidth = "100%";
+                } else if (statusText === "Rejected") {
+                    progressWidth = "100%";
+                }
+
+                issueElement.innerHTML = `
+                    <h4>${issue.description}</h4>
+                    <p><strong>Status:</strong> <span class="status-${issue.status.toLowerCase().replace(' ', '-')}">${issue.status}</span></p>
+                    <div class="progress-bar-container" style="background-color: ${statusText === 'Rejected' ? '#e0e0e0' : '#e0e0e0'};">
+                        <div class="progress-bar" style="width: ${progressWidth}; background-color: ${statusText === 'Rejected' ? '#dc3545' : '#198754'};"></div>
+                    </div>
+                    <small>Reported on: ${issue.timestamp ? new Date(issue.timestamp.seconds * 1000).toLocaleString() : 'Date not available'}</small><br>
+                    <small>Tags: ${(issue.tags || []).map(tag => `<span class="tag">${tag}</span>`).join(' ')}</small>
+                `;
+                container.appendChild(issueElement);
+            });
+        }
+
+        // --- REPLACED loadIssues() with a REAL-TIME LISTENER ---
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // This function will now run every time the data changes on the server
+                const issuesCollection = collection(db, "issues");
+                const q = query(issuesCollection, where("userID", "==", user.uid));
+                
+                onSnapshot(q, (snapshot) => {
+                    const issues = [];
+                    snapshot.forEach(doc => {
+                        issues.push({ id: doc.id, ...doc.data() });
+                    });
+                    renderIssues(issues); // Re-renders the list with fresh data
+                }, (error) => {
+                    console.error("Error fetching issues in real-time: ", error);
+                    alert("Could not load issues. Check console for errors.");
+                });
+            } else {
+                // Not logged in, send to login page
+                window.location.href = "index.html";
+            }
+        });
+    </script>
+</body>
+</html>

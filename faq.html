@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - CIVIC EYE</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Styles for the FAQ accordion */
+        .faq-accordion {
+            background-color: #0d5c05; /* Changed to dark green for contrast */
+            color: white;             /* Changed font color to white */
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 1rem;
+            transition: 0.4s;
+            margin-top: 8px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .faq-accordion:hover {
+            background-color: #138808; /* Lighter green for hover effect */
+        }
+
+        .faq-panel {
+            padding: 0 18px;
+            background-color: white;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            border-left: 1px solid #ddd;
+            border-right: 1px solid #ddd;
+        }
+
+        .faq-accordion.active {
+             border-bottom-left-radius: 0;
+             border-bottom-right-radius: 0;
+        }
+    </style>
+</head>
+<body>
+    <header style="font-size: 2.5rem; font-weight: bold; color: #0d5c05;">Frequently Asked Questions (FAQ)</header>
+
+    <div class="dashboard-section">
+        <a href="dashboard_citizen.html"><button style="background-color: #6c757d;">Back to Dashboard</button></a>
+    </div>
+
+    <div class="dashboard-section">
+        <h2>How can we help you?</h2>
+
+        <button class="faq-accordion">How do I report a new issue?</button>
+        <div class="faq-panel">
+            <p>From the Citizen Dashboard, fill out the "Report a New Issue" form. You must attach a photo, write a short description, select an issue type (like 'Pothole' or 'Waste'), and pinpoint the location on the map before submitting.</p>
+        </div>
+
+        <button class="faq-accordion">What kind of issues can I report?</button>
+        <div class="faq-panel">
+            <p>You can report issues related to public infrastructure and services. Currently, we support categories for Potholes (handled by PWD), Streetlights (handled by the City Corporation), and Waste disposal issues.</p>
+        </div>
+
+        <button class="faq-accordion">How can I track my submitted issues?</button>
+        <div class="faq-panel">
+            <p>Click on the "Track My Submitted Issues" button on your dashboard. This will take you to a page listing all the issues you've reported and their current status.</p>
+        </div>
+        
+        <button class="faq-accordion">What do the different statuses mean?</button>
+        <div class="faq-panel">
+            <ul>
+                <li><strong>Pending:</strong> Your issue has been submitted and is waiting for review by the concerned department.</li>
+                <li><strong>In Progress:</strong> Your issue has been acknowledged and work has begun to resolve it.</li>
+                <li><strong>Completed:</strong> The issue has been successfully resolved.</li>
+                <li><strong>Rejected:</strong> The issue was found to be invalid or a duplicate.</li>
+            </ul>
+        </div>
+
+        <button class="faq-accordion">What is CivicEye?</button>
+        <div class="faq-panel">
+            <p>CIVIC EYE is a platform designed to empower citizens by providing a direct channel to report local civic issues to the correct government departments, ensuring transparency and efficient resolution.</p>
+        </div>
+    </div>
+
+    <footer>
+   
+    </footer>
+
+    <script>
+        // JavaScript for the accordion functionality
+        const accordions = document.getElementsByClassName("faq-accordion");
+        for (let i = 0; i < accordions.length; i++) {
+            accordions[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                const panel = this.nextElementSibling;
+                if (panel.style.maxHeight) {
+                    panel.style.maxHeight = null;
+                } else {
+                    panel.style.maxHeight = panel.scrollHeight + "px";
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>

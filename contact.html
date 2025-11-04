@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us & Map – CIVIC EYE</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #FF9933, #FFFFFF, #138808);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      background: rgba(255,255,255,0.95);
+      border-radius: 15px;
+      padding: 25px;
+      width: 350px;
+      max-width: 90%;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+      animation: fadeIn 1s ease;
+      margin-top: 20px;
+    }
+
+    h1 { text-align: center; color: #333; margin-bottom: 15px; }
+    .input-group { margin-bottom: 15px; }
+    .input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .input-group input, .input-group textarea {
+      width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem;
+    }
+
+    button {
+      background: #138808; color: #fff; border: none; padding: 12px;
+      border-radius: 8px; width: 100%; cursor: pointer; font-size: 1rem;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    button:hover { background: #0d5c05; transform: scale(1.03); }
+
+    #map { height: 350px; width: 90%; margin: 20px auto; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(-20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Contact Us & Map</h1>
+
+  <div class="container">
+    <div class="input-group">
+      <label for="contactEmail">Email</label>
+      <input type="email" id="contactEmail" placeholder="Enter your email">
+    </div>
+    <div class="input-group">
+      <label for="contactQuery">Query</label>
+      <textarea id="contactQuery" rows="5" placeholder="Enter your message"></textarea>
+    </div>
+    <button onclick="sendContact()">Send</button>
+  </div>
+
+  <h2 style="text-align:center;color:#000;margin-top:20px;">Location Map</h2>
+  <div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Map centered at Chinmaya Vidyalaya Attukal (Precise)
+    var map = L.map('map').setView([8.4703975, 76.9538299], 17); // <-- UPDATED
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    
+    L.marker([8.4703975, 76.9538299]).addTo(map) // <-- UPDATED
+      .bindPopup('Chinmaya Vidyalaya Attukal').openPopup(); // <-- Text Updated
+
+    function sendContact() {
+      var email = document.getElementById('contactEmail').value;
+      var query = document.getElementById('contactQuery').value;
+      alert("Query Sent!\nEmail: " + email + "\nMessage: " + query);
+      document.getElementById('contactEmail').value = "";
+      document.getElementById('contactQuery').value = "";
+    }
+  </script>
+</body>
+</html>

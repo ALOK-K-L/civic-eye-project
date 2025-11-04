@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Become a Guardian - CIVIC EYE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="background-chakra" viewBox="-10 -10 20 20" fill="#06038d">
+    <title>Ashoka Chakra</title>
+    <circle fill="none" stroke="#06038d" r="8.625" stroke-width="1.25"/>
+    <circle r="1.6"/>
+    <g id="d">
+      <g id="c">
+        <g id="b">
+          <g id="a">
+            <path d="m0-8 .3 4.81409L0-.80235-.3-3.18591z"/>
+            <circle transform="rotate(7.5)" r="0.35" cy="-8"/>
+          </g>
+          <use xlink:href="#a" transform="scale(-1)"/>
+        </g>
+        <use xlink:href="#b" transform="rotate(15)"/>
+      </g>
+      <use xlink:href="#c" transform="rotate(30)"/>
+    </g>
+    <use xlink:href="#d" transform="rotate(60)"/>
+    <use xlink:href="#d" transform="rotate(120)"/>
+  </svg>
+
+  <header>
+    <p style="font-size: 2rem; color: #0d5c05; font-weight: 700;">Your first step towards becoming a guardian for your community.</p>
+  </header>
+
+  <div class="dashboard-section" style="max-width: 400px;">
+    <h2>Become a Guardian</h2>
+    <div class="input-group">
+      <label for="signupName">Full Name</label>
+      <input type="text" id="signupName" placeholder="Enter your full name" required>
+    </div>
+    <div class="input-group">
+      <label for="signupEmail">Email</label>
+      <input type="email" id="signupEmail" placeholder="Enter your email" required>
+    </div>
+    <div class="input-group">
+      <label for="signupPassword">Password</label>
+      <input type="password" id="signupPassword" placeholder="Create a password (min. 6 characters)" required>
+    </div>
+    <div class="input-group">
+      <label for="signupRole">I am a:</label>
+      <select id="signupRole">
+        <option value="Citizen">Citizen</option>
+      </select>
+    </div>
+    <button onclick="handleSignup()">Sign Up</button>
+    <p style="text-align:center; margin-top: 15px;">Already have an account? <a href="index.html">Login here</a></p>
+  </div>
+
+  <footer>
+  
+  </footer>
+
+  <script type="module">
+    import { auth, db } from "./firebase-config.js";
+    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+    import { doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+    window.handleSignup = async function() {
+      const name = document.getElementById("signupName").value;
+      const email = document.getElementById("signupEmail").value;
+      const password = document.getElementById("signupPassword").value;
+      const role = document.getElementById("signupRole").value;
+
+      if (!name || !email || !password) {
+        alert("Please fill in all fields.");
+        return;
+      }
+      if (password.length < 6) {
+        alert("Password must be at least 6 characters long.");
+        return;
+      }
+
+      try {
+        // 1. Create user in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // 2. Save user's role and name in Firestore
+        await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          name: name,
+          email: email,
+          role: role
+        });
+
+        alert("Account created successfully! Please log in.");
+        window.location.href = "index.html"; // Redirect to login page
+
+      } catch (error) {
+        console.error("Signup Error: ", error);
+        alert("Error creating account: " + error.message);
+      }
+    };
+  </script>
+</body>
+</html>
